@@ -1,0 +1,233 @@
+/*
+ * Assignment 3
+ * 
+ * Team Members:
+ * Athulya Ganesh
+ * Haneesha Dushara
+ * Nishanth Chidambaram
+ * Robert Schad
+ * 
+ * */
+
+:-dynamic(myList/1).
+/* randomList is a predicate that generates a List of random
+*  numbers with length L in range of given numbers
+*/
+randomList(0, []).  
+randomList(N, LIST):-
+ 	N > 0,        
+  N1 is N-1,    
+  random(1, 100, U),
+  LIST = [U|T],    
+  randomList(N1, T).
+
+/*
+ *Adds/Updates dynamic myList value temp
+ * */
+updateList(Temp):-
+    retractall(myList(_)),
+    assertz(myList(Temp)),
+    !.
+
+/*
+ * Generates a list of numbers with length 50 using randomList Predicate.
+ * Then calls updateList to update myList value.
+ * */
+:- randomList(50,L).
+updateList(L).
+
+% swap
+/*swap the first two elements if they are not in order*/ 
+ swap([X, Y|T], [Y, X | T]):- 
+            Y < X. 
+
+/*swap elements in the tail*/ 
+ swap([H|T], [H|T1]):- 
+              swap(T, T1). 
+
+% bubbleSort
+/* bubbleSort - Iterate through the elements and check if each element should be swapped with the one in front of it.
+                If so, recursively call bubblesort with the rest of the list.
+                If the swap function fails, the bubbleSort is not called and recursion occurs.
+*/
+bubbleSort(L,SL):- 
+             swap(L, L1), % at least one swap is needed 
+             !, 
+             bubbleSort(L1, SL). 
+
+bubbleSort(L, L). % here, the list is already sorted
+
+% ordered
+/* Check if a list is in non-decreasing order. */
+ordered([]).
+ordered([_X]).
+ordered([H1, H2|T]):-
+    H1 =< H2, 
+    ordered([H2|T]).
+
+
+/*insert element E into sorted list LS and sort it, put it into sorted list SLE.*/
+/*Comment describing insert(E, SL, SLE) -
+ * 											insert element E into sorted list LS and sort it, put it into sorted list SLE.
+ * */
+
+/*
+ * Created new function that sorts values in increasing order.
+ * */
+lte(E,H):-
+    E=<H.
+
+/*Comment describing the 1st clause of insert - 
+ * 												If list is empty, put element into list.
+ * 												If called, order elements and call insertionSort. If it fails, return
+ * */
+
+insert(X, [],[X]). 
+insert(E, [H|T], [E,H|T]):- 
+      ordered(T),
+      lte(E,H), 
+      !. 
+
+/*Comment describing the 2nd clause of insert -
+ * 												calls insert with element, list, and sorted list.
+ * 												orders tail of list.
+ * 												recursively calls insert function to order list, does not affect sorted list
+ * */
+insert(E,[H|T],[H|T1]):- 
+      ordered(T),
+      insert(E,T,T1).
+
+/* Comment describing insertionSort -
+ * 			If empty, return empty list.
+ * 			call insertionSort recursively with list and sorted list.
+ * 			once for each element, call insert to add element to SORTED and then sort list
+ * */
+
+insertionSort([], []). 
+insertionSort([H|T], SORTED) :- 
+          insertionSort(T, T1), 
+          insert(H, T1, SORTED). 
+
+/* MergeSort:  
+* split the list in half, 
+* then recursively call mergeSort on the two halves.
+* Then we merge the two halves together to get the final, sorted list.
+*/
+mergeSort([], []).    %the empty list is sorted 
+mergeSort([X], [X]):-!.
+mergeSort(L, SL):- 
+             split_in_half(L, L1, L2), 
+             mergeSort(L1, S1), 
+             mergeSort(L2, S2),
+             merge(S1, S2, SL). 
+
+/* Comment to describe split_in_half - 
+                                    If empty list is input in split_in_half, the function call fails.
+                                    If list only has 1 element, the single element list is returned.
+                                    If a list is input in split_in_half, it finds the length of the list and saves it as N
+                                          Then it finds half of N and saves it as N1.
+                                          Then if creates a list of random values of size N1 and saves it as list L1.
+                                          It then finds L2, which is the half of L that is not L1.
+*/
+intDiv(N,N1, R):- R is div(N,N1).
+split_in_half([], _, _):-!, fail.
+split_in_half([X],[],[X]). 
+split_in_half(L, L1, L2):- 
+             length(L,N), 
+             intDiv(N,2,N1),
+             length(L1, N1), 
+             append(L1, L2, L).
+
+% merge
+/* Merge - combines two sorted sublists to produce one sorted combined list. */
+merge([], L, L). % merge the empty list with any list L - return L
+merge(L, [],L).  % merge any list L with the empty list - return L 
+
+merge([H1|T1],[H2|T2],[H1| T]):- % head of sublist 1 is less than or equal to head of sublist 2
+	 H1 =< H2,
+	merge(T1,[H2|T2],T).
+
+merge([H1|T1], [H2|T2], [H2|T]):- % head of sublist 2 is less than or equal to head of sublist 1
+	H2 =< H1,
+	merge([H1|T1], T2, T).
+   
+% split
+/* 
+* split - given an element X, 
+* divide a list into two sublists where the first sublist is all 
+* elements less than or equal to X,
+* and the second sublist is all elements greater than X.
+*/
+split(_, [],[],[]). 
+% head of list is less than or equal to X
+split(X, [H|T], [H|SMALL], BIG):- 
+      H =< X, 
+      split(X, T, SMALL, BIG).    
+% head of list is greater than X
+split(X, [H|T], SMALL, [H|BIG]):-
+      X =< H,
+      split(X, T, SMALL, BIG). 
+
+/*
+* Element in a list is selected as the pivot element
+* Put the pivot in its correct position in a sorted list
+* All elements smaller than x are put before it, all elements larger than x are put after it
+* This is recurisvely repeated for for each sublist until the whole list is sorted 
+*/
+quickSort([], []).
+quickSort([H|T], LS):-
+        split(H, T, SMALL, BIG), 
+        quickSort(SMALL, S), 
+        quickSort(BIG, B), 
+        append(S, [H|B], LS). 
+
+
+/*
+Generally, hybrid sort functions in the following manner: a list is inputted, along with the threshold, a BIGALG, and a SMALLALG.
+If the length of the list is smaller than the inputted threshold, then the list calls the SMALLALG (bubblesort or insertionsort). Else, the hybridsort behaves like the BIGALG.
+*/
+
+/*If the lengths of the list is smaller than the threshold and bubblesort is the small algorithm, then we call bubblesort on the list*/
+hybridSort(LIST, bubbleSort, _BIGALG, THRESHOLD, SLIST):-
+	length(LIST, N), N=< THRESHOLD,      
+      bubbleSort(LIST, SLIST).
+
+/*If the lengths of the list is smaller than the threshold and insertionSort is the small algorithm, then we call bubblesort on the list*/
+hybridSort(LIST, insertionSort, _BIGALG, THRESHOLD, SLIST):-
+	length(LIST, N), N=<THRESHOLD,
+      insertionSort(LIST, SLIST).
+
+/*
+ * If the length of the list is greater than the threshold, and the bigalg is mergeSort, then hybrid sort behaves like mergeSort
+ * It does this by splitting the list into two halves and recurse with the two seperate halves of the list, and then merge the two sorted lists
+*/
+hybridSort(LIST, SMALL, mergeSort, THRESHOLD, SLIST):-
+	length(LIST, N), N> THRESHOLD,      
+	split_in_half(LIST, L1, L2),
+    	hybridSort(L1, SMALL, mergeSort, THRESHOLD, S1),
+    	hybridSort(L2, SMALL, mergeSort, THRESHOLD, S2),
+    	merge(S1,S2, SLIST).
+
+
+/*
+ * If the length of the list is greater than the threshold, and the big algorithm is quickSort, then hybrid sort behaves like quickSort. 
+*/
+hybridSort([H|T], SMALL, quickSort, THRESHOLD, SLIST):-
+	length([H|T], N), N > THRESHOLD,      
+	split(H, T, L1, L2),
+    hybridSort(L1, SMALL, quickSort, THRESHOLD, S1), 
+    hybridSort(L2, SMALL, quickSort, THRESHOLD, S2),     
+    append(S1, [H|S2], SLIST).
+
+/* QUERY TO RUN THE TESTS
+randomList(50, LIST),
+updateList(LIST),
+bubbleSort(LIST, SLIST1),
+insertionSort(LIST, SLIST2),
+mergeSort(LIST, SLIST3),
+quickSort(LIST, SLIST4),
+hybridSort(LIST, bubbleSort, mergeSort, 5, SLIST5),
+hybridSort(LIST, bubbleSort, quickSort, 5, SLIST6),
+hybridSort(LIST, insertionSort, mergeSort, 5, SLIST7),
+hybridSort(LIST, insertionSort, quickSort, 5, SLIST8).
+*/
